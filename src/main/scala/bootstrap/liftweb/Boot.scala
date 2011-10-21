@@ -5,7 +5,20 @@ import net.liftweb.http.{LiftSession, LiftRules}
 import net.liftweb.util.Helpers
 import travel.offers.backend.DataFetcher
 
+
+object Scoped {
+
+
+
+
+}
+
+
 class Boot {
+
+
+
+
 
   def boot {
     LiftRules.addToPackages("travel.offers")

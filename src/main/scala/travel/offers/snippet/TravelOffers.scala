@@ -22,14 +22,16 @@ class TravelOffers extends UrlFetcher with HybridCache {
 
         val keywordsFromPage = (XML.loadString(xmlString) \\ "tags" \\ "@id") map {  _.text } map { Keyword(_) }
 
-        println(keywordsFromPage)
-
         cache.get("offers").map {
           case offers: List[Offer] => {
             val candidateOffers = offers filter { _.keywords.intersect(keywordsFromPage).size > 0 }
-            val theOffer: Option[Offer] = candidateOffers.sortBy{ _.keywords.intersect(keywordsFromPage).size}.lastOption
+            val theOffer: Option[Offer] = candidateOffers.sortBy{ _.keywords.intersect(keywordsFromPage).size}.headOption
             theOffer map { o =>
-              (".main-picture [src]" #> o.imageUrl) & (".offer-text *" #> o.title) & (".offer-from *" #> o.earliestDeparture.toString("EEEE dd MMMM yyyy")) & (".offer-price *" #> Unparsed("&pound;" + o.fromPrice))
+              (".offer-image [src]" #> o.imageUrl) &
+                ("h5 *" #> o.title) &
+                (".buy-link [href]" #> o.offerUrl) &
+                (".buy-link *" #> Unparsed("Starting " + o.earliestDeparture.toString("EEEE dd MMMM yyyy") + " from &pound;" + o.fromPrice)) &
+                (".header-image [title]" #> o.keywords.intersect(keywordsFromPage).map(_.id).mkString(","))
             } getOrElse ("#travel-offers-top" #> "")
           }
           case a => "#travel-offers-top *" #> ""
