@@ -29,7 +29,7 @@ class TravelOffers extends UrlFetcher with HybridCache {
             theOffer map { o =>
               (".offer-image [src]" #> o.imageUrl) &
                 ("h5 *" #> o.title) &
-                (".buy-link [href]" #> o.offerUrl) &
+                (".buy-link [href]" #> (o.offerUrl + "?INTCMP=ILCTOFFTXT10390")) &
                 (".buy-link *" #> Unparsed("Starting " + o.earliestDeparture.toString("EEEE dd MMMM yyyy") + " from &pound;" + o.fromPrice)) &
                 (".header-image [title]" #> o.keywords.intersect(keywordsFromPage).map(_.id).mkString(","))
             } getOrElse ("#travel-offers-top" #> "")
