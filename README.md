@@ -11,3 +11,10 @@ If this is the first time you type ./start the Appengine SDK will be downloaded.
 You can find more info on the Appengine SBT plugin here....
 
 https://github.com/eed3si9n/sbt-appengine
+
+
+The sbt plugin does not currently run the local dev server (for some reason it is commented out in the source code)
+but you can run it from the root of the source directory with the command (note, not from inside sbt) ...
+
+appengine-java-sdk-1.6.0/bin/dev_appserver.sh target/webapp
+
