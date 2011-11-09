@@ -1,0 +1,33 @@
+#!/bin/bash
+
+APPENGINE_VERSION="1.6.0"
+APPENGINE_DIR="appengine-java-sdk-$APPENGINE_VERSION"
+APPENGINE_FILE="appengine-java-sdk-${APPENGINE_VERSION}.zip"
+
+#   http://googleappengine.googlecode.com/files/google_appengine_1.6.0.zip
+
+if [ ! -f $APPENGINE_FILE ]; then
+    APPENGINE_URL="http://googleappengine.googlecode.com/files/$APPENGINE_FILE"
+    echo " "
+    echo " "
+    echo " "
+    echo "-----------------------------------------------------------------------------------------------------------"
+    echo "downloading Appengine SDK - this should only happen on first run"
+    echo "$APPENGINE_URL"
+    echo "please wait"
+    echo "-----------------------------------------------------------------------------------------------------------"
+    echo " "
+    echo " "
+    echo " "
+    wget $APPENGINE_URL
+    unzip $APPENGINE_FILE
+fi
+
+export APPENGINE_SDK_HOME="$PWD/$APPENGINE_DIR"
+
+echo "APPENGINE_SDK_HOME set to $APPENGINE_SDK_HOME"
+
+#assumes you have sbt somewhere on your path
+sbt
+
+
