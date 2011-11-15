@@ -2,46 +2,60 @@ package travel.offers.snippet
 
 import net.liftweb.util._
 import Helpers._
-import net.liftweb.http.S
 import appenginehelpers.{Response, ExpirationSeconds, UrlFetcher, HybridCache}
 import travel.offers.backend.{Offer, Keyword}
 import xml.{Unparsed, NodeSeq, XML}
+import java.lang.IllegalStateException
+import collection.immutable.List
+import net.liftweb.http.{RequestVar, S}
 
-class TravelOffers extends UrlFetcher with HybridCache {
+class TravelOffers {
 
-  def top = {
+  def search = {
+    val offer = Repository.offers.get(0)
+    "#travel-offer [value]" #> offer.keywords(0).name
+  }
 
-    val a = {
+  def trail = {
+    val offer = Repository.offers.get(0)
+    (".offer-image [src]" #> offer.imageUrl) &
+    (".link [href]" #> offer.offerUrl) &
+    (".offer-image [alt]" #> offer.title) &
+    (".lift-offer *" #> offer.title ) &
+    (".lift-offer [class]" #> "link")
+  }
+}
 
-    val shortUrl: String = S.param("url").openOr(throw new RuntimeException("No short url specified")).replace("http://www.guardian.co.uk/", "").replace("http://www.gucode.co.uk/", "").replace("http://www.gucode.gnl/", "")
 
-    val apiUrl = "http://content.guardianapis.com/%s?format=xml&show-tags=keyword".format(shortUrl)
 
-    GET(apiUrl, None, ExpirationSeconds(20 * 60)) match {
+object Repository extends UrlFetcher with HybridCache {
+
+  object offers extends RequestVar[List[Offer]](getOffers)
+
+
+
+  private def getOffers = {
+    val url: String = S.param("url").openOr(throw new RuntimeException("No short url specified")).replace("http://www.guardian.co.uk/", "").replace("http://www.gucode.co.uk/", "").replace("http://www.gucode.gnl/", "")
+    val apiUrl = "http://content.guardianapis.com/%s?format=xml&show-tags=keyword".format(url)
+
+    val offerOption: Option[List[Offer]] = GET(apiUrl, None, ExpirationSeconds(20 * 60)) match {
       case Response(200, Some(xmlString), _) => {
 
-        val keywordsFromPage = (XML.loadString(xmlString) \\ "tags" \\ "@id") map {  _.text } map { Keyword(_) }
+        val keywordsFromPage = (XML.loadString(xmlString) \\ "tags") map { Keyword(_) }
+
+        println(keywordsFromPage)
 
         cache.get("offers").map {
-          case offers: List[Offer] => {
-            val candidateOffers = offers filter { _.keywords.intersect(keywordsFromPage).size > 0 }
-            val theOffer: Option[Offer] = candidateOffers.sortBy{ _.keywords.intersect(keywordsFromPage).size}.headOption
-
-            theOffer map { o =>
-              (".offer-image [src]" #> o.imageUrl) &
-                (".headline *" #> o.title) &
-                (".buy-link [href]" #> (o.offerUrl + "?INTCMP=ILCTOFFTXT10390")) &
-                (".buy-link *" #> Unparsed("Starting " + o.earliestDeparture.toString("EEEE dd MMMM yyyy") + " from &pound;" + o.fromPrice)) &
-                (".header-image [title]" #> o.keywords.intersect(keywordsFromPage).map(_.id).mkString(","))
-            } getOrElse ("#travel-offers-top" #> "")
+          case offers: List[Offer] => offers filter {
+            println(offers)
+            _.keywords.intersect(keywordsFromPage).size > 0
           }
-          case a => "#travel-offers-top *" #> ""
-        } getOrElse ("#travel-offers-top *" #> "")
+          case a => throw new IllegalStateException("should not have got a " + a.getClass)
+        }
       }
-      case _ => "#travel-offers-top *" #> ""
+      case _ => throw new IllegalStateException("oops")
     }
-  }
-    a
+    offerOption.getOrElse (Nil)
   }
 
 }

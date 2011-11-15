@@ -52,7 +52,7 @@ object DataFetcher extends RestHelper with UrlFetcher with HybridCache {
             .format(URLEncoder.encode(o.title.replace("&", "").replace(",", ""), "UTF-8"))
           GET(apiUrl, None, ExpirationSeconds(30 * 60)) match {
             case Response(200, Some(xmlString), _) => {
-              val keywords = (XML.loadString(xmlString) \\ "tag") map { Keyword(_) }
+              val keywords = (XML.loadString(xmlString) \\ "tag") map { n => Keyword((n\"@id").text, (n\"@web-title").text) }
               val newKeywords = (keywords.toList ::: o.keywords) distinct
               val newOffer: Offer = Offer(o, newKeywords)
               val newOffers: List[Offer] = newOffer :: (offers.filterNot(_.id == o.id))
@@ -72,10 +72,10 @@ object DataFetcher extends RestHelper with UrlFetcher with HybridCache {
 
 }
 
-case class Keyword(id: String)
+case class Keyword(id: String, name: String)
 
 object Keyword {
-  def apply(node: Node): Keyword = Keyword((node \\ "@id").text)
+  def apply(node: Node): Keyword = Keyword((node \\ "@id").text, (node \\ "@web-title").text)
 }
 
 case class Offer(id: Int, title: String, offerUrl: String, imageUrl: String, fromPrice: String, earliestDeparture: DateTime, keywords: List[Keyword])
