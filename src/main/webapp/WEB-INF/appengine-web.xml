@@ -8,5 +8,6 @@
   </system-properties>
   <static-files>
     <exclude path="/static/**.css" />
+    <exclude path="/*.html" />
   </static-files>
 </appengine-web-app>

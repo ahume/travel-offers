@@ -19,3 +19,5 @@ libraryDependencies ++= {
 	    "org.mortbay.jetty" % "jetty" % "6.1.22" % "jetty"
     )
 }
+
+jettyPort := 9011
