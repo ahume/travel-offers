@@ -40,7 +40,7 @@ object DataFetcher extends RestHelper {
   def tags(id: Int) = {
     getOfferFromRaw(id) foreach { oldOffer =>
 
-      val query = oldOffer.title + (" \"" + oldOffer.countries.mkString("\" \"") + "\"").replace("&", "").replace(",", "")
+      val query = "\"" + oldOffer.countries.mkString("\" \"") + "\"".replace("&", "").replace(",", "")
 
       val apiUrl = "http://content.guardianapis.com/tags?q=%s&format=xml&type=keyword&section=travel&api-key=%s"
             .format(URLEncoder.encode(query, "UTF-8"), Scoped.apiKey)
