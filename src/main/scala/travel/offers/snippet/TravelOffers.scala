@@ -18,6 +18,7 @@ class TravelOffers {
       (".trail [class]"      #> trailClass) &
       (".offer-image [src]"  #> offer.imageUrl) &
       (".link [href]"        #> offer.offerUrl) &
+      (".offer-image [width]" #> imageWidthInPixels) &
       (".offer-image [alt]"  #> offer.title) &
       (".lift-offer *"       #> offer.title ) &
       (".lift-offer [class]" #> "link")
@@ -27,5 +28,10 @@ class TravelOffers {
   private def trailClasses = Scoped.numTrails.get match {
     case 1 => List("")
     case 2 => List("two-col", "two-col edge")
+  }
+
+  private def imageWidthInPixels = Scoped.imageSize.get match {
+    case "TwoColumn" => "280px"
+    case "ThumbOne" =>  "140px"
   }
 }

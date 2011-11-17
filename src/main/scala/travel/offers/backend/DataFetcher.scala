@@ -42,8 +42,8 @@ object DataFetcher extends RestHelper {
 
       val query = oldOffer.title + (" \"" + oldOffer.countries.mkString("\" \"") + "\"").replace("&", "").replace(",", "")
 
-      val apiUrl = "http://content.guardianapis.com/tags?q=%s&format=xml&type=keyword&section=travel&api-key=%s".format(Scoped.apiKey)
-            .format(URLEncoder.encode(query, "UTF-8"))
+      val apiUrl = "http://content.guardianapis.com/tags?q=%s&format=xml&type=keyword&section=travel&api-key=%s"
+            .format(URLEncoder.encode(query, "UTF-8"), Scoped.apiKey)
       Appengine.GET(apiUrl).foreach { xmlString =>
         val keywords = (XML.loadString(xmlString) \\ "tag") map { n => { Keyword((n\"@id").text, (n\"@web-title").text) } }
         val newKeywords = (keywords.toList ::: oldOffer.keywords) distinct
@@ -69,8 +69,10 @@ case class Offer(id: Int, title: String, offerUrl: String, private val _imageUrl
 
   //this needs to be a def - do NOT val or lazy val it
   def imageUrl = {
-    val end = _imageUrl.lastIndexOf("type=") + 5
-    _imageUrl.substring(0, end) + Scoped.imageSize.get + "&INTCMP=" + Scoped.campaign.get
+    if (_imageUrl contains "type=") {
+      val end = _imageUrl.lastIndexOf("type=") + 5
+      _imageUrl.substring(0, end) + Scoped.imageSize.get + "&INTCMP=" + Scoped.campaign.get
+    } else { _imageUrl }
   }
 }
 

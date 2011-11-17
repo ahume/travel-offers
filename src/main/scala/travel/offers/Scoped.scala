@@ -1,11 +1,13 @@
 package travel.offers
 
+import backend.Offer._
 import backend.{Appengine, Keyword, Offer}
 import org.joda.time.DateTime
 import net.liftweb.http.{S, RequestVar}
 import java.lang.IllegalStateException
 import xml.XML
 import appenginehelpers.{Response, ExpirationSeconds}
+import scala.util.Random
 
 object Scoped {
 
@@ -28,20 +30,30 @@ object Scoped {
 
   object offers extends RequestVar[List[Offer]]( getOffersFor (pageUrl) take numTrails.get )
 
-  private val defaultOffers = List(
-    Offer(7, "The title of the first offer",
-      "http://www.google.com", "http://www.guardianholidayoffers.co.uk/Image.aspx?id=23314&type=NoResize",
-      "799",
-      new DateTime,
-      Nil,
-      Nil),
-    Offer(8, "The title of the second offer",
-      "http://www.google.com", "http://www.guardianholidayoffers.co.uk/Image.aspx?id=17091&type=NoResize",
-      "57",
+  private def defaultOffers = Random.shuffle(
+    Scoped.imageSize.get match {
+      case "ThumbOne" => List(
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460653031/Holiday-offers-image---tr-001.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460712443/Holiday-Offers-image---Ne-001.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460770667/Holiday-offers-image---In-001.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460803971/Holiday-Offers-image---Pa-001.jpg")
+      )
+      case "TwoColumn" => List(
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460655227/Holiday-offers-image---tr-003.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460714281/Holiday-Offers-image---Ne-003.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460772820/Holiday-offers-image---In-003.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460806064/Holiday-Offers-image---Pa-003.jpg")
+
+      )
+    }
+  )
+
+  private def defaultOffer(image: String) = Offer(-1, "Find hand picked holidays",
+      "http://www.guardianholidayoffers.co.uk/", image,
+      "",
       new DateTime,
       Nil,
       Nil)
-  )
 
   private def getOffersFor(pageUrl: String): List[Offer] = getRealOffersFor(pageUrl) ++ defaultOffers
 
