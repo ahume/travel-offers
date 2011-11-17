@@ -1,26 +1,23 @@
 package bootstrap.liftweb
 
 import net.liftweb.common.Empty
-import net.liftweb.http.{LiftSession, LiftRules}
-import net.liftweb.util.Helpers
-import travel.offers.backend.DataFetcher
-
-
-object Scoped {
-
-
-
-
-}
-
+import net.liftweb.http._
+import net.liftweb.util.{NamedPF, Helpers}
+import rest.RestHelper
+import travel.offers.Scoped._
+import util.Random
+import java.lang.IllegalStateException
+import travel.offers.Scoped
+import travel.offers.backend.{Appengine, DataFetcher}
 
 class Boot {
 
-
-
-
+  object rand extends Random
 
   def boot {
+
+    LiftRules.htmlProperties.default.set((r: Req) => (new OldHtmlProperties(r.userAgent)).setHtmlOutputHeader(() => Empty).setDocType(() => Empty))
+
     LiftRules.addToPackages("travel.offers")
 
     LiftRules.early.append(r => r.setCharacterEncoding("UTF-8"))
@@ -46,7 +43,60 @@ class Boot {
     LiftRules.statelessTest.prepend({case _ => true})
 
     LiftRules.statelessDispatchTable.append(DataFetcher)
+
+    LiftRules.statelessRewrite.prepend(NamedPF("components") {
+      case RewriteRequest(ParsePath("narrow" :: Nil, _, _, _), _, _) => {
+        numTrails.set(1)
+        imageSize.set("ThumbOne")
+
+        (rand.nextInt(2)) match {
+          case 0 => {
+            backgroundColor.set("variant-color-grey")
+            campaign.set(campaigns("narrow-grey"))
+          }
+          case 1 => {
+            backgroundColor.set("variant-color-blue")
+            campaign.set(campaigns("narrow-blue"))
+          }
+        }
+
+        RewriteResponse("travelOffers" :: Nil, Map.empty[String, String])
+      }
+
+      case RewriteRequest(ParsePath("promo" :: Nil, _, _, _), _, _) => {
+        numTrails.set( rand.nextInt(2) + 1)
+        numTrails.get match {
+          case 1 => {
+            imageSize.set("TwoColumn")
+            campaign.set(campaigns("promo-1-offer"))
+          }
+          case 2 => {
+            imageSize.set("ThumbOne")
+            campaign.set(campaigns("promo-2-offer"))
+          }
+          case _ => throw new IllegalStateException("there should only be 1 or 2 trails")
+        }
+        RewriteResponse("travelOffersPromo" :: Nil, Map.empty[String, String])
+      }
+    })
+
+
+    LiftRules.statelessDispatchTable.append(new RestHelper{
+      serve {
+        case Get("offers" ::  Nil, _) =>
+          <html>
+            <body>
+              <ul>{
+                Appengine.getOffers.map{ offer =>
+                  <li>
+                    {offer.title} - {offer.keywords.map(_.id).mkString(", ")}
+                  </li>
+                }
+              }</ul>
+            </body>
+          </html>
+      }
+    })
+
   }
-
-
 }

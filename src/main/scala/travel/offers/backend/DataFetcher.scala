@@ -4,71 +4,58 @@ import net.liftweb.http.rest.RestHelper
 import xml.{Node, XML}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import com.google.appengine.api.taskqueue.{TaskOptions, QueueFactory}
-import java.net.URLEncoder
-import appenginehelpers.{ExpirationSeconds, HybridCache, Response, UrlFetcher}
 import com.google.appengine.api.taskqueue.TaskOptions.Method
+import travel.offers.Scoped
+import com.google.appengine.api.taskqueue.{RetryOptions, TaskOptions, QueueFactory}
+import com.google.appengine.api.memcache.MemcacheServiceFactory
+import java.net.{URL, URLEncoder}
+import com.google.appengine.api.urlfetch.{FetchOptions, HTTPMethod, HTTPRequest, URLFetchServiceFactory}
 
-object DataFetcher extends RestHelper with UrlFetcher with HybridCache {
+object DataFetcher extends RestHelper {
 
   serve {
     case Get("data" :: "refresh" :: Nil, _) => refresh
+
     case Get("data" :: "tags" :: id :: Nil, _) => tags(id.toInt)
   }
 
   def refresh = {
-    val offers = GET("http://extranet.gho.red2.co.uk/Offers/XmlOffers", None, ExpirationSeconds(0)) match {
-      case Response(200, Some(xmlString), _) => {
-
-        val offers: List[Offer] = (XML.loadString(xmlString) \\ "offer").zipWithIndex.map {
-          o => Offer(o._2, o._1)
-        } toList
-
-        cache.put("offers", offers)
-
-        offers
-      }
-    }
+    val offers = Appengine.GET("http://extranet.gho.red2.co.uk/Offers/XmlOffers") map { xmlString =>
+      val o: List[Offer] = (XML.loadString(xmlString) \\ "offer").zipWithIndex.map{ o => Offer(o._2, o._1) }.toList
+      Appengine.cacheRawOffers(o)
+      Appengine.cacheOffers(Nil)
+      o
+    } getOrElse Nil
 
     offers foreach {
       o =>
-        val task: TaskOptions = TaskOptions.Builder.withUrl("/data/tags/" + o.id).method(Method.GET)
+        val task: TaskOptions = TaskOptions.Builder.withUrl("/data/tags/" + o.id)
+          .retryOptions(RetryOptions.Builder.withTaskRetryLimit(5)).method(Method.GET)
         QueueFactory.getDefaultQueue.add(task)
     }
 
-      <ok/>
+    <ok/>
   }
 
   def tags(id: Int) = {
+    getOfferFromRaw(id) foreach { oldOffer =>
 
-    cache.get("offers") match {
-      case Some(offers: List[Offer]) => {
-        val offer = offers filter {
-          (o: Offer) => o.id == id
-        } headOption
+      val query = oldOffer.title + (" \"" + oldOffer.countries.mkString("\" \"") + "\"").replace("&", "").replace(",", "")
 
-        offer foreach { o =>
-          val apiUrl = "http://content.guardianapis.com/tags?q=%s&format=xml&type=keyword&section=travel"
-            .format(URLEncoder.encode(o.title.replace("&", "").replace(",", ""), "UTF-8"))
-          GET(apiUrl, None, ExpirationSeconds(30 * 60)) match {
-            case Response(200, Some(xmlString), _) => {
-              val keywords = (XML.loadString(xmlString) \\ "tag") map { n => Keyword((n\"@id").text, (n\"@web-title").text) }
-              val newKeywords = (keywords.toList ::: o.keywords) distinct
-              val newOffer: Offer = Offer(o, newKeywords)
-              val newOffers: List[Offer] = newOffer :: (offers.filterNot(_.id == o.id))
-              cache.put("offers", newOffers.toList)
-              println(newOffer)
-            }
-          }
-        }
-
-        <ok/>
+      val apiUrl = "http://content.guardianapis.com/tags?q=%s&format=xml&type=keyword&section=travel&api-key=%s".format(Scoped.apiKey)
+            .format(URLEncoder.encode(query, "UTF-8"))
+      Appengine.GET(apiUrl).foreach { xmlString =>
+        val keywords = (XML.loadString(xmlString) \\ "tag") map { n => { Keyword((n\"@id").text, (n\"@web-title").text) } }
+        val newKeywords = (keywords.toList ::: oldOffer.keywords) distinct
+        val newOffer: Offer = Offer(oldOffer, newKeywords)
+        val offersWithKeywords = newOffer :: Appengine.getOffers
+        Appengine.cacheOffers(offersWithKeywords)
       }
-      case a => <not_ok/>
     }
-
-
+    <ok/>
   }
+
+  private def getOfferFromRaw(id: Int): Option[Offer] = Appengine.getRawOffers.find(_.id == id)
 
 }
 
@@ -78,13 +65,20 @@ object Keyword {
   def apply(node: Node): Keyword = Keyword((node \\ "@id").text, (node \\ "@web-title").text)
 }
 
-case class Offer(id: Int, title: String, offerUrl: String, imageUrl: String, fromPrice: String, earliestDeparture: DateTime, keywords: List[Keyword])
+case class Offer(id: Int, title: String, offerUrl: String, private val _imageUrl: String, fromPrice: String, earliestDeparture: DateTime, keywords: List[Keyword], countries: List[String]) {
+
+  //this needs to be a def - do NOT val or lazy val it
+  def imageUrl = {
+    val end = _imageUrl.lastIndexOf("type=") + 5
+    _imageUrl.substring(0, end) + Scoped.imageSize.get + "&INTCMP=" + Scoped.campaign.get
+  }
+}
 
 object Offer {
 
   val dateFormat = DateTimeFormat.forPattern("dd-MMM-yyyy")
 
-  def apply(o: Offer, keywords: List[Keyword]): Offer = Offer(o.id, o.title, o.offerUrl, o.imageUrl, o.fromPrice, o.earliestDeparture, keywords)
+  def apply(o: Offer, keywords: List[Keyword]): Offer = Offer(o.id, o.title, o.offerUrl, o._imageUrl, o.fromPrice, o.earliestDeparture, keywords, o.countries)
 
   def apply(id: Int, node: Node): Offer = {
     Offer(
@@ -94,7 +88,38 @@ object Offer {
       (node \\ "imageurl").text replace("NoResize", "ThreeColumn"),
       (node \ "@fromprice").text,
       dateFormat.parseDateTime((node \ "@earliestdeparture").text),
-      Nil
+      Nil,
+      (node \\ "country") map { _.text } toList
     )
+  }
+}
+
+object Appengine {
+
+  private val cache = MemcacheServiceFactory.getMemcacheService
+
+  private val urlFetcher = URLFetchServiceFactory.getURLFetchService
+
+
+  def cacheRawOffers(offers: List[Offer]) {
+    cache.put("raw-offers", offers)
+  }
+
+  def getRawOffers = Option(cache.get("raw-offers")) map  { case offers: List[Offer] => offers } getOrElse Nil
+
+  def cacheOffers(offers: List[Offer]) {
+    cache.put("offers", offers)
+  }
+
+  def getOffers = Option(cache.get("offers")) map  { case offers: List[Offer] => offers } getOrElse Nil
+
+  def GET(url: String): Option[String] = {
+
+    val request = new HTTPRequest(new URL(url), HTTPMethod.GET, FetchOptions.Builder.withDeadline(20.0))
+    val response = urlFetcher.fetch(request)
+    response.getResponseCode match {
+      case 200 => new Some(new String(response.getContent))
+      case _ => None
+    }
   }
 }
