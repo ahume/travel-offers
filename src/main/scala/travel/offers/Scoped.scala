@@ -20,6 +20,18 @@ object Scoped {
     "narrow-blue" -> "33333333333333333333"
   )
 
+  val trainsSmall = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614311421/Holiday-Offers---train-tr-001.jpg")
+  val trainsBig = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460655227/Holiday-offers-image---tr-003.jpg")
+  val newYorkSmall = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614346487/Holiday-Offers-New-York-001.jpg")
+  val newYorkBig = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460714281/Holiday-Offers-image---Ne-003.jpg")
+  val indiaSmall = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614378671/Holiday-Offers-India-001.jpg")
+  val indiaBig = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460772820/Holiday-offers-image---In-003.jpg")
+  val parisSmall = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614408885/Holiday-Offers-Paris-001.jpg")
+  val parisBig = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460806064/Holiday-Offers-image---Pa-003.jpg")
+
+  val smallDefaults = List(trainsSmall, indiaSmall, newYorkSmall, parisSmall)
+  val largeDefaults = List(trainsBig, indiaBig, newYorkBig, parisBig)
+
   object backgroundColor extends RequestVar[String](throw new IllegalStateException("someone should have set the background color"))
 
   object campaign extends RequestVar[String](throw new IllegalStateException("someone should have set the campaign"))
@@ -32,19 +44,8 @@ object Scoped {
 
   private def defaultOffers = Random.shuffle(
     Scoped.imageSize.get match {
-      case "ThumbOne" => List(
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614311421/Holiday-Offers---train-tr-001.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614346487/Holiday-Offers-New-York-001.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614378671/Holiday-Offers-India-001.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614408885/Holiday-Offers-Paris-001.jpg")
-      )
-      case "TwoColumn" => List(
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460655227/Holiday-offers-image---tr-003.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460714281/Holiday-Offers-image---Ne-003.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460772820/Holiday-offers-image---In-003.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460806064/Holiday-Offers-image---Pa-003.jpg")
-
-      )
+      case "ThumbOne" => smallDefaults
+      case "TwoColumn" => largeDefaults
     }
   )
 
@@ -55,12 +56,14 @@ object Scoped {
 
   private def getRealOffersFor(pageUrl: String) =  {
     val apiUrl = "http://content.guardianapis.com/%s?format=xml&show-tags=keyword&api-key=%s".format(pageUrl, apiKey)
-    Appengine.GET(apiUrl) map { xmlString =>
+    val offers = Appengine.GET(apiUrl) map { xmlString =>
           val keywordsFromPage = (XML.loadString(xmlString) \\ "tag") map { Keyword(_) }
 
           Appengine.getOffers.filter { _.keywords.intersect(keywordsFromPage).size > 0 } sortBy { _.keywords.intersect(keywordsFromPage).size } reverse
 
     } getOrElse Nil
+
+    Random.shuffle(offers)
   }
 
   //yeah, yeah I know, but it works

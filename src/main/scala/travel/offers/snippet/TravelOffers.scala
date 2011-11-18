@@ -9,9 +9,16 @@ class TravelOffers {
 
   def color = ".travel-offers [class+]" #> Scoped.backgroundColor.get
 
+  def links = ".browse-all [href]" #> ("http://www.guardianholidayoffers.co.uk?INTCMP=" + Scoped.campaign.get) &
+    ".email-signup [href]" #> ("http://www.guardianholidayoffers.co.uk/email-sign-up?INTCMP=" + Scoped.campaign.get)
+    ".browse-all [class]" #> "" &
+    ".email-signup [class]" #> ""
+
+
   def search = {
     val offer = Scoped.offers.get.head
-    "#travel-offer [value]" #> (offer.keywords.headOption map { _.name } getOrElse (""))
+    ("#travel-offer [value]" #> (offer.keywords.headOption map { _.name } getOrElse (""))) &
+    (".travel-offers-search [action]" #> ("http://www.guardianholidayoffers.co.uk/Search?INTCMP=" + Scoped.campaign.get))
   }
 
   def trail = {

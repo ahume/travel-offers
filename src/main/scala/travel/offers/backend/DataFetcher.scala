@@ -65,30 +65,34 @@ object Keyword {
   def apply(node: Node): Keyword = Keyword((node \\ "@id").text, (node \\ "@web-title").text)
 }
 
-case class Offer(id: Int, title: Option[String], offerUrl: String, private val _imageUrl: String, fromPrice: String,
+case class Offer(id: Int, title: Option[String], _offerUrl: String, private val _imageUrl: String, fromPrice: String,
                  earliestDeparture: DateTime, keywords: List[Keyword], countries: List[String]) {
 
   //this needs to be a def - do NOT val or lazy val it
+  def offerUrl = _offerUrl + intCmp
+
   def imageUrl = {
     if (_imageUrl contains "type=") {
       val end = _imageUrl.lastIndexOf("type=") + 5
-      _imageUrl.substring(0, end) + Scoped.imageSize.get + "&INTCMP=" + Scoped.campaign.get
+      _imageUrl.substring(0, end) + Scoped.imageSize.get + intCmp
     } else { _imageUrl }
   }
+
+  private def intCmp = "&INTCMP=" + Scoped.campaign.get
 }
 
 object Offer {
 
   val dateFormat = DateTimeFormat.forPattern("dd-MMM-yyyy")
 
-  def apply(o: Offer, keywords: List[Keyword]): Offer = Offer(o.id, o.title, o.offerUrl, o._imageUrl, o.fromPrice, o.earliestDeparture, keywords, o.countries)
+  def apply(o: Offer, keywords: List[Keyword]): Offer = Offer(o.id, o.title, o._offerUrl, o._imageUrl, o.fromPrice, o.earliestDeparture, keywords, o.countries)
 
   def apply(id: Int, node: Node): Offer = {
     Offer(
       id,
       Some((node \\ "title") text),
       (node \\ "offerurl") text,
-      (node \\ "imageurl").text replace("NoResize", "ThreeColumn"),
+      (node \\ "imageurl").text.replace("NoResize", "ThreeColumn").replace("http://www.guardianholidayoffers.co.uk/Image.aspx", "http://resource.guim.co.uk/travel/holiday-offers-micro/image"),
       (node \ "@fromprice").text.replace(".00", ""),
       dateFormat.parseDateTime((node \ "@earliestdeparture").text),
       Nil,
@@ -117,11 +121,14 @@ object Appengine {
   def getOffers = Option(cache.get("offers")) map  { case offers: List[Offer] => offers } getOrElse Nil
 
   def GET(url: String): Option[String] = {
+    GET_bytes(url) map { new String(_) }
+  }
 
-    val request = new HTTPRequest(new URL(url), HTTPMethod.GET, FetchOptions.Builder.withDeadline(20.0))
+  def GET_bytes(url: String): Option[Array[Byte]] = {
+   val request = new HTTPRequest(new URL(url), HTTPMethod.GET, FetchOptions.Builder.withDeadline(20.0))
     val response = urlFetcher.fetch(request)
     response.getResponseCode match {
-      case 200 => new Some(new String(response.getContent))
+      case 200 => Some(response.getContent)
       case _ => None
     }
   }

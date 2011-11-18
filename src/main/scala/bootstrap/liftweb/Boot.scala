@@ -8,7 +8,7 @@ import travel.offers.Scoped._
 import util.Random
 import java.lang.IllegalStateException
 import travel.offers.Scoped
-import travel.offers.backend.{Appengine, DataFetcher}
+import travel.offers.backend.{OffersList, ImageProxy, Appengine, DataFetcher}
 
 class Boot {
 
@@ -43,6 +43,8 @@ class Boot {
     LiftRules.statelessTest.prepend({case _ => true})
 
     LiftRules.statelessDispatchTable.append(DataFetcher)
+      .append(ImageProxy)
+      .append(OffersList)
 
     LiftRules.statelessRewrite.prepend(NamedPF("components") {
       case RewriteRequest(ParsePath("narrow" :: Nil, _, _, _), _, _) => {
@@ -79,24 +81,5 @@ class Boot {
         RewriteResponse("travelOffersPromo" :: Nil, Map.empty[String, String])
       }
     })
-
-
-    LiftRules.statelessDispatchTable.append(new RestHelper{
-      serve {
-        case Get("offers" ::  Nil, _) =>
-          <html>
-            <body>
-              <ul>{
-                Appengine.getOffers.map{ offer =>
-                  <li>
-                    {offer.title} - {offer.keywords.map(_.id).mkString(", ")}
-                  </li>
-                }
-              }</ul>
-            </body>
-          </html>
-      }
-    })
-
   }
 }
