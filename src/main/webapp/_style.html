@@ -9,6 +9,38 @@
         margin-right: 10px;
     }
 
+    .travel-offers h3 {
+        text-indent: -1000px;
+        overflow: hidden;
+        background-image: url(http://travel-offers.appspot.com/static/gho.png);
+        background-repeat: no-repeat;
+        background-position: 0 0;
+    }
+
+    .travel-offers.four-col h3,
+    .travel-offers.two-col h3
+    {
+        width: 230px;
+        height: 24px;
+        background-position: 0 -69px;
+        margin-top: 7px;
+        margin-bottom: 10px !important;
+    }
+
+    .travel-offers.two-col h3 {
+        width: 98px;
+        height: 33px;
+        background-position: 0 0;
+        margin-left: 5px;
+        margin-top: 4px;
+        margin-bottom: 6px !important;
+    }
+
+    .travel-offers.two-col.variant-color-blue h3 {
+        background-position: 0 -34px;
+        height: 34px
+    }
+
     .travel-offers h4 {
         margin-bottom: 0.5em;
         margin-top: 2px;
@@ -19,6 +51,10 @@
     }
 
     .travel-offers input.submit {
+        margin-left: 5px;
+    }
+
+    .travel-offers.two-col input.submit {
         float: right;
     }
 
@@ -27,8 +63,13 @@
         width: 124px;
     }
 
+    .travel-offers.four-col .plain-search {
+        float: left;
+    }
+
     .travel-offers label {
-        display: inline-block;
+        clear: both;
+        display: block;
         margin-bottom: 0.5em;
     }
 
@@ -43,11 +84,11 @@
         background-color: #ececec;
     }
 
-    .travel-offers.variant-color-grey{
+    .travel-offers.variant-color-grey {
         background-color: #ececec;
     }
 
-    .travel-offers.variant-color-blue{
+    .travel-offers.variant-color-blue {
         background-color: #B1E1FC;
     }
 
