@@ -65,7 +65,8 @@ object Keyword {
   def apply(node: Node): Keyword = Keyword((node \\ "@id").text, (node \\ "@web-title").text)
 }
 
-case class Offer(id: Int, title: String, offerUrl: String, private val _imageUrl: String, fromPrice: String, earliestDeparture: DateTime, keywords: List[Keyword], countries: List[String]) {
+case class Offer(id: Int, title: Option[String], offerUrl: String, private val _imageUrl: String, fromPrice: String,
+                 earliestDeparture: DateTime, keywords: List[Keyword], countries: List[String]) {
 
   //this needs to be a def - do NOT val or lazy val it
   def imageUrl = {
@@ -85,10 +86,10 @@ object Offer {
   def apply(id: Int, node: Node): Offer = {
     Offer(
       id,
-      (node \\ "title") text,
+      Some((node \\ "title") text),
       (node \\ "offerurl") text,
       (node \\ "imageurl").text replace("NoResize", "ThreeColumn"),
-      (node \ "@fromprice").text,
+      (node \ "@fromprice").text.replace(".00", ""),
       dateFormat.parseDateTime((node \ "@earliestdeparture").text),
       Nil,
       (node \\ "country") map { _.text } toList

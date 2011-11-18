@@ -3,6 +3,7 @@ package travel.offers.snippet
 import net.liftweb.util._
 import Helpers._
 import travel.offers.Scoped
+import xml.Unparsed
 
 class TravelOffers {
 
@@ -19,8 +20,8 @@ class TravelOffers {
       (".offer-image [src]"  #> offer.imageUrl) &
       (".link [href]"        #> offer.offerUrl) &
       (".offer-image [width]" #> imageWidthInPixels) &
-      (".offer-image [alt]"  #> offer.title) &
-      (".lift-offer *"       #> offer.title ) &
+      (".offer-image [alt]"  #> offer.title.getOrElse("Find hand picked holidays")) &
+      (offer.title map { title => ".lift-offer *" #> Unparsed(title + " - from &pound;" + offer.fromPrice) } getOrElse { ".trail-text" #> "" }) &
       (".lift-offer [class]" #> "link")
     })
   }

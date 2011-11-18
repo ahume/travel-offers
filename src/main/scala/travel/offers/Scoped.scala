@@ -33,10 +33,10 @@ object Scoped {
   private def defaultOffers = Random.shuffle(
     Scoped.imageSize.get match {
       case "ThumbOne" => List(
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460653031/Holiday-offers-image---tr-001.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460712443/Holiday-Offers-image---Ne-001.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460770667/Holiday-offers-image---In-001.jpg"),
-        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460803971/Holiday-Offers-image---Pa-001.jpg")
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614311421/Holiday-Offers---train-tr-001.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614346487/Holiday-Offers-New-York-001.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614378671/Holiday-Offers-India-001.jpg"),
+        defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614408885/Holiday-Offers-Paris-001.jpg")
       )
       case "TwoColumn" => List(
         defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/16/1321460655227/Holiday-offers-image---tr-003.jpg"),
@@ -48,12 +48,8 @@ object Scoped {
     }
   )
 
-  private def defaultOffer(image: String) = Offer(-1, "Find hand picked holidays",
-      "http://www.guardianholidayoffers.co.uk/", image,
-      "",
-      new DateTime,
-      Nil,
-      Nil)
+  private def defaultOffer(image: String) = Offer(-1, None, "http://www.guardianholidayoffers.co.uk/", image,
+      "", new DateTime, Nil, Nil)
 
   private def getOffersFor(pageUrl: String): List[Offer] = getRealOffersFor(pageUrl) ++ defaultOffers
 
