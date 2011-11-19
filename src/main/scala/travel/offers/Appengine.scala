@@ -25,7 +25,7 @@ object Appengine extends AppengineLogging {
   def getOffers = Option(cache.get("offers")) map  { case offers: List[Offer] => offers } getOrElse Nil
 
   def GET(url: String): Option[String] = {
-    GET_bytes(url) map { new String(_) }
+    GET_bytes(url) map { new String(_, "UTF-8") }
   }
 
   def GET_bytes(url: String): Option[Array[Byte]] = {
