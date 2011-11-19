@@ -1,12 +1,8 @@
 package travel.offers
-
-import backend.Offer._
-import backend.{Appengine, Keyword, Offer}
 import org.joda.time.DateTime
 import net.liftweb.http.{S, RequestVar}
 import java.lang.IllegalStateException
 import xml.XML
-import appenginehelpers.{Response, ExpirationSeconds}
 import scala.util.Random
 
 object Scoped {

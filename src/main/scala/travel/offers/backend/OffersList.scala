@@ -2,6 +2,7 @@ package travel.offers.backend
 
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.S
+import travel.offers.Appengine._
 
 object OffersList extends RestHelper {
   serve {
@@ -10,7 +11,7 @@ object OffersList extends RestHelper {
       <html>
         <body>
           <ul>{
-            Appengine.getOffers.map{ offer =>
+            getOffers map { offer =>
               <li>
                 <b>{ offer.title.getOrElse("") }</b> : {offer.keywords.map(_.id).mkString(", ")}
               </li>

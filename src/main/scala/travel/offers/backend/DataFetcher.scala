@@ -1,135 +1,67 @@
 package travel.offers.backend
 
 import net.liftweb.http.rest.RestHelper
-import xml.{Node, XML}
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
+import xml.XML
 import com.google.appengine.api.taskqueue.TaskOptions.Method
-import travel.offers.Scoped
-import com.google.appengine.api.taskqueue.{RetryOptions, TaskOptions, QueueFactory}
-import com.google.appengine.api.memcache.MemcacheServiceFactory
-import java.net.{URL, URLEncoder}
-import com.google.appengine.api.urlfetch.{FetchOptions, HTTPMethod, HTTPRequest, URLFetchServiceFactory}
+import travel.offers.Scoped._
+import com.google.appengine.api.taskqueue.QueueFactory
+import com.google.appengine.api.taskqueue.TaskOptions.Builder._
+import com.google.appengine.api.taskqueue.RetryOptions.Builder._
+import java.net.URLEncoder
+import travel.offers.Appengine._
+import travel.offers.{Keyword, Offer}
 
 object DataFetcher extends RestHelper {
 
   serve {
-    case Get("data" :: "refresh" :: Nil, _) => refresh
-
-    case Get("data" :: "tags" :: id :: Nil, _) => tags(id.toInt)
+    case Get("data" :: "refresh" :: Nil, _) => refreshAllOffers
+    case Get("data" :: "tags" :: id :: Nil, _) => tagOffer(id.toInt)
   }
 
-  def refresh = {
-    val offers = Appengine.GET("http://extranet.gho.red2.co.uk/Offers/XmlOffers") map { xmlString =>
-      val o: List[Offer] = (XML.loadString(xmlString) \\ "offer").zipWithIndex.map{ o => Offer(o._2, o._1) }.toList
-      Appengine.cacheRawOffers(o)
-      Appengine.cacheOffers(Nil)
-      o
+  def refreshAllOffers = {
+    val offers = GET("http://extranet.gho.red2.co.uk/Offers/XmlOffers") map { xmlString =>
+      val offersFromFeed = (XML.loadString(xmlString) \\ "offer").zipWithIndex.map{ o => Offer(o._2, o._1) }.toList
+      cacheRawOffers(offersFromFeed)
+      cacheOffers(Nil)
+      offersFromFeed
     } getOrElse Nil
 
-    offers foreach {
-      o =>
-        val task: TaskOptions = TaskOptions.Builder.withUrl("/data/tags/" + o.id)
-          .retryOptions(RetryOptions.Builder.withTaskRetryLimit(5)).method(Method.GET)
-        QueueFactory.getDefaultQueue.add(task)
-    }
+    offers foreach { queueForTagging }
 
-    <ok/>
+    <offers>{offers.size} offers loaded</offers>
   }
 
-  def tags(id: Int) = {
-    getOfferFromRaw(id) foreach { oldOffer =>
+  def tagOffer(id: Int) = {
+    val taggedOffer = getRawOffers.find(_.id == id) flatMap { oldOffer =>
 
       val query = "\"" + oldOffer.countries.mkString("\" \"") + "\"".replace("&", "").replace(",", "")
 
       val apiUrl = "http://content.guardianapis.com/tags?q=%s&format=xml&type=keyword&section=travel&api-key=%s"
-            .format(URLEncoder.encode(query, "UTF-8"), Scoped.apiKey)
-      Appengine.GET(apiUrl).foreach { xmlString =>
-        val keywords = (XML.loadString(xmlString) \\ "tag") map { n => { Keyword((n\"@id").text, (n\"@web-title").text) } }
-        val newKeywords = (keywords.toList ::: oldOffer.keywords) distinct
-        val newOffer: Offer = Offer(oldOffer, newKeywords)
-        val offersWithKeywords = newOffer :: Appengine.getOffers
-        Appengine.cacheOffers(offersWithKeywords)
+            .format(URLEncoder.encode(query, "UTF-8"), apiKey)
+      GET(apiUrl).map { xmlString =>
+        val keywords: List[Keyword] = ((XML.loadString(xmlString) \\ "tag") map { n => { Keyword((n\"@id").text, (n\"@web-title").text) } }).toList
+        tagAndCache(oldOffer, keywords)
       }
     }
-    <ok/>
-  }
 
-  private def getOfferFromRaw(id: Int): Option[Offer] = Appengine.getRawOffers.find(_.id == id)
-
-}
-
-case class Keyword(id: String, name: String)
-
-object Keyword {
-  def apply(node: Node): Keyword = Keyword((node \\ "@id").text, (node \\ "@web-title").text)
-}
-
-case class Offer(id: Int, title: Option[String], _offerUrl: String, private val _imageUrl: String, fromPrice: String,
-                 earliestDeparture: DateTime, keywords: List[Keyword], countries: List[String]) {
-
-  //this needs to be a def - do NOT val or lazy val it
-  def offerUrl = _offerUrl + intCmp
-
-  def imageUrl = {
-    if (_imageUrl contains "type=") {
-      val end = _imageUrl.lastIndexOf("type=") + 5
-      _imageUrl.substring(0, end) + Scoped.imageSize.get + intCmp
-    } else { _imageUrl }
-  }
-
-  private def intCmp = "&INTCMP=" + Scoped.campaign.get
-}
-
-object Offer {
-
-  val dateFormat = DateTimeFormat.forPattern("dd-MMM-yyyy")
-
-  def apply(o: Offer, keywords: List[Keyword]): Offer = Offer(o.id, o.title, o._offerUrl, o._imageUrl, o.fromPrice, o.earliestDeparture, keywords, o.countries)
-
-  def apply(id: Int, node: Node): Offer = {
-    Offer(
-      id,
-      Some((node \\ "title") text),
-      (node \\ "offerurl") text,
-      (node \\ "imageurl").text.replace("NoResize", "ThreeColumn").replace("http://www.guardianholidayoffers.co.uk/Image.aspx", "http://resource.guim.co.uk/travel/holiday-offers-micro/image"),
-      (node \ "@fromprice").text.replace(".00", ""),
-      dateFormat.parseDateTime((node \ "@earliestdeparture").text),
-      Nil,
-      (node \\ "country") map { _.text } toList
-    )
-  }
-}
-
-object Appengine {
-
-  private val cache = MemcacheServiceFactory.getMemcacheService
-
-  private val urlFetcher = URLFetchServiceFactory.getURLFetchService
-
-
-  def cacheRawOffers(offers: List[Offer]) {
-    cache.put("raw-offers", offers)
-  }
-
-  def getRawOffers = Option(cache.get("raw-offers")) map  { case offers: List[Offer] => offers } getOrElse Nil
-
-  def cacheOffers(offers: List[Offer]) {
-    cache.put("offers", offers)
-  }
-
-  def getOffers = Option(cache.get("offers")) map  { case offers: List[Offer] => offers } getOrElse Nil
-
-  def GET(url: String): Option[String] = {
-    GET_bytes(url) map { new String(_) }
-  }
-
-  def GET_bytes(url: String): Option[Array[Byte]] = {
-   val request = new HTTPRequest(new URL(url), HTTPMethod.GET, FetchOptions.Builder.withDeadline(20.0))
-    val response = urlFetcher.fetch(request)
-    response.getResponseCode match {
-      case 200 => Some(response.getContent)
-      case _ => None
+    taggedOffer map { offer =>
+      <tags>offer {offer.title} tagged with {offer.keywords.mkString(", ")}</tags>
+    } getOrElse {
+      <tags>offer with id {id} not found</tags>
     }
   }
+
+  private def tagAndCache(oldOffer: Offer, keywords: List[Keyword]) = {
+    val newKeywords = (keywords.toList ::: oldOffer.keywords) distinct
+    val offersWithKeywords = Offer(oldOffer, newKeywords) :: getOffers
+    cacheOffers(offersWithKeywords)
+    offersWithKeywords.head
+  }
+
+  private def queueForTagging(offer: Offer) = QueueFactory.getDefaultQueue.add(withUrl("/data/tags/" + offer.id)
+    .retryOptions(withTaskRetryLimit(5)).method(Method.GET))
+
 }
+
+
+

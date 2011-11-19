@@ -3,12 +3,10 @@ package bootstrap.liftweb
 import net.liftweb.common.Empty
 import net.liftweb.http._
 import net.liftweb.util.{NamedPF, Helpers}
-import rest.RestHelper
 import travel.offers.Scoped._
 import util.Random
 import java.lang.IllegalStateException
-import travel.offers.Scoped
-import travel.offers.backend.{OffersList, ImageProxy, Appengine, DataFetcher}
+import travel.offers.backend.{OffersList, ImageProxy, DataFetcher}
 
 class Boot {
 
