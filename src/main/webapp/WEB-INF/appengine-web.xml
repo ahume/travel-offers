@@ -10,4 +10,5 @@
     <exclude path="/static/**.css" />
     <exclude path="/*.html" />
   </static-files>
+  <threadsafe>true</threadsafe>
 </appengine-web-app>
