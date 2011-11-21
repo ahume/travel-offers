@@ -60,9 +60,13 @@ object Scoped {
   private def getRealOffersFor(pageUrl: String) =  {
     val apiUrl = "http://content.guardianapis.com/%s?format=xml&show-tags=keyword&api-key=%s".format(pageUrl, apiKey)
     val offers = Appengine.GET(apiUrl) map { xmlString =>
-          val keywordsFromPage = (XML.loadString(xmlString) \\ "tag") map { Keyword(_) }
 
-          Appengine.getOffers.filter { _.keywords.intersect(keywordsFromPage).size > 0 } sortBy { _.keywords.intersect(keywordsFromPage).size } reverse
+      val keywordFromTagPage = (XML.loadString(xmlString) \ "tag") map { Keyword(_) }
+      val keywordsFromPage =  keywordFromTagPage.headOption map { List(_) } getOrElse {
+        (XML.loadString(xmlString) \\ "tag") map { Keyword(_) }
+      }
+
+      Appengine.getOffers.filter { _.keywords.intersect(keywordsFromPage).size > 0 } sortBy { _.keywords.intersect(keywordsFromPage).size } reverse
 
     } getOrElse Nil
 
