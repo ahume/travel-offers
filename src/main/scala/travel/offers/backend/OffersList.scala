@@ -3,6 +3,7 @@ package travel.offers.backend
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.S
 import travel.offers.Appengine._
+import travel.offers.Scoped._
 
 object OffersList extends RestHelper {
   serve {
@@ -10,6 +11,11 @@ object OffersList extends RestHelper {
       S.setHeader("Content-Type", "text/html;charset=utf-8")
       <html>
         <body>
+          <h3>Campaign codes</h3>
+          <ul>{
+            campaigns map { case (key, value) => <li>{key} -> {value}</li> }
+          }</ul>
+          <h3>Offers</h3>
           <ul>{
             getOffers map { offer =>
               <li>

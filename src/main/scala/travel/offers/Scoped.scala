@@ -10,10 +10,10 @@ object Scoped {
   val apiKey = "w6uczudeaz692ej822b5sffj"
 
   val campaigns = Map(
-    "promo-1-offer" -> "11111111111111111111",
-    "promo-2-offer" -> "22222222222222222222",
-    "narrow-grey" -> "33333333333333333333",
-    "narrow-blue" -> "33333333333333333333"
+    "promo-1-offer" -> "ILCTOFFTXT5262I",
+    "promo-2-offer" -> "ILCTOFFTXT5263I",
+    "narrow-grey" -> "ILCTOFFTXT5264I",
+    "narrow-blue" -> "ILCTOFFTXT5265I"
   )
 
   val trainsSmall = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614311421/Holiday-Offers---train-tr-001.jpg")

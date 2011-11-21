@@ -24,7 +24,7 @@ class Boot {
      case _ =>
        //todo set max age to something sensible
         List("Date" -> Helpers.nowAsInternetDate,
-          "Cache-Control" -> "public, max-age=1",
+          "Cache-Control" -> "public, max-age=900",
           "Content-Type" -> "text/html; charset=UTF-8")
     }
 
