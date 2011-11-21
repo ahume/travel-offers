@@ -10,6 +10,7 @@ import com.google.appengine.api.taskqueue.RetryOptions.Builder._
 import java.net.URLEncoder
 import travel.offers.Appengine._
 import travel.offers.{Keyword, Offer}
+import net.liftweb.http.S
 
 object DataFetcher extends RestHelper {
 
@@ -19,6 +20,7 @@ object DataFetcher extends RestHelper {
   }
 
   def refreshAllOffers = {
+    S.setHeader("Cache-Control", "public, max-age=1")
     val offers = GET("http://extranet.gho.red2.co.uk/Offers/XmlOffers") map { xmlString =>
       val offersFromFeed = (XML.loadString(xmlString) \\ "offer").zipWithIndex.map{ o => Offer(o._2, o._1) }.toList
       cacheRawOffers(offersFromFeed)

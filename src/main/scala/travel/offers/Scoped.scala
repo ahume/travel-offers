@@ -13,7 +13,8 @@ object Scoped {
     "promo-1-offer" -> "ILCTOFFTXT5262I",
     "promo-2-offer" -> "ILCTOFFTXT5263I",
     "narrow-grey" -> "ILCTOFFTXT5264I",
-    "narrow-blue" -> "ILCTOFFTXT5265I"
+    "narrow-blue" -> "ILCTOFFTXT5265I",
+    "default" -> "ILCTOFFTXT5266I"
   )
 
   val trainsSmall = defaultOffer("http://static.guim.co.uk/sys-images/Travel/Pix/pictures/2011/11/18/1321614311421/Holiday-Offers---train-tr-001.jpg")
@@ -48,7 +49,13 @@ object Scoped {
   private def defaultOffer(image: String) = Offer(-1, None, "http://www.guardianholidayoffers.co.uk/", image,
       "", new DateTime, Nil, Nil)
 
-  private def getOffersFor(pageUrl: String): List[Offer] = getRealOffersFor(pageUrl) ++ defaultOffers
+  private def getOffersFor(pageUrl: String): List[Offer] = {
+    val offers = getRealOffersFor(pageUrl) ++ defaultOffers
+    if (offers.head.isDefault) {
+      campaign.set(campaigns("default"))
+    }
+    offers
+  }
 
   private def getRealOffersFor(pageUrl: String) =  {
     val apiUrl = "http://content.guardianapis.com/%s?format=xml&show-tags=keyword&api-key=%s".format(pageUrl, apiKey)

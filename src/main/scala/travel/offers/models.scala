@@ -15,16 +15,18 @@ case class Offer(id: Int, title: Option[String], _offerUrl: String, private val 
                  earliestDeparture: DateTime, keywords: List[Keyword], countries: List[String]) {
 
   //this needs to be a def - do NOT val or lazy val it
-  def offerUrl = _offerUrl + intCmp
+  def offerUrl = _offerUrl + "?" + intCmp
+
+  lazy val isDefault = !title.isDefined
 
   def imageUrl = {
     if (_imageUrl contains "type=") {
       val end = _imageUrl.lastIndexOf("type=") + 5
-      _imageUrl.substring(0, end) + imageSize.get + intCmp
+      _imageUrl.substring(0, end) + imageSize.get + "&" + intCmp
     } else { _imageUrl }
   }
 
-  private def intCmp = "&INTCMP=" + campaign.get
+  private def intCmp = "INTCMP=" + campaign.get
 }
 
 object Offer {

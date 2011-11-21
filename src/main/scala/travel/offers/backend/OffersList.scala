@@ -9,6 +9,7 @@ object OffersList extends RestHelper {
   serve {
     case Get("offers" ::  Nil, _) =>
       S.setHeader("Content-Type", "text/html;charset=utf-8")
+      S.setHeader("Cache-Control", "public, max-age=1")
       <html>
         <body>
           <h3>Campaign codes</h3>

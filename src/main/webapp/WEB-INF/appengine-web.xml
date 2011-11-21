@@ -7,7 +7,7 @@
     <property name="in.gae.j" value="true"/>
   </system-properties>
   <static-files>
-    <exclude path="/static/**.css" />
+    <include path="/static/**" expiration="1d" />
     <exclude path="/*.html" />
   </static-files>
   <threadsafe>true</threadsafe>
