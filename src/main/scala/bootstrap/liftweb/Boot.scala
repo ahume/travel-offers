@@ -78,6 +78,22 @@ class Boot {
         }
         RewriteResponse("travelOffersPromo" :: Nil, Map.empty[String, String])
       }
+
+      case RewriteRequest(ParsePath("promo-r3" :: Nil, _, _, _), _, _) => {
+        numTrails.set( rand.nextInt(2) + 1)
+        numTrails.get match {
+          case 1 => {
+            imageSize.set("TwoColumn")
+            campaign.set(campaigns("promo-1-offer"))
+          }
+          case 2 => {
+            imageSize.set("ThumbOne")
+            campaign.set(campaigns("promo-2-offer"))
+          }
+          case _ => throw new IllegalStateException("there should only be 1 or 2 trails")
+        }
+        RewriteResponse("travelOffersPromoR3" :: Nil, Map.empty[String, String])
+      }
     })
   }
 }
