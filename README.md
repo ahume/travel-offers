@@ -1,20 +1,33 @@
 Travel offers microapp that serves up context sensitve travel offers against content.
 
-If you have an article on Italy you would expect to see an Ital travel offer.
+If you have an article on Italy you would expect to see an Italy travel offer.
 
-To run change directory into the root of this project and type ./start
+PROJECT DASHBOARD
+-----------------
 
-You should use the ./start script as APPENGINE_SDK_HOME needs to be set.
+https://appengine.google.com/dashboard?&app_id=travel-offers
 
-If this is the first time you type ./start the Appengine SDK will be downloaded. This can take a short while.
+INFO/ HEALTHCHECK URL
+---------------------
 
-You can find more info on the Appengine SBT plugin here....
+http://travel-offers.appspot.com/offers
 
-https://github.com/eed3si9n/sbt-appengine
+DEVELOPMENT
+-----------
+
+Change into the project directory and run the command ./start.sh to get the normal sbt prompt
 
 
-The sbt plugin does not currently run the local dev server (for some reason it is commented out in the source code)
-but you can run it from the root of the source directory with the command (note, not from inside sbt) ...
+RUNNING LOCALLY
+---------------
 
-appengine-java-sdk-1.6.0/bin/dev_appserver.sh target/webapp
+Change into the project directory and run the command ./dev_appserver.sh
+
+DEPLOYING
+---------
+
+Ensure the version number in src/main/webapp/WEB-INF/appengine-web.xml is correct.
+
+Change into the project directory and run the command ./deploy.sh
+
 
