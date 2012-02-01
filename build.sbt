@@ -13,8 +13,6 @@ libraryDependencies ++= {
         "net.liftweb" %% "lift-common" % liftVersion,
 	    "net.liftweb" %% "lift-util" % liftVersion,
 	    "net.liftweb" %% "lift-webkit" % liftVersion,
-	    "appengine-helpers" %% "cache" % "1.3-SNAPSHOT",
-	    "appengine-helpers" %% "urlfetcher" % "1.5-SNAPSHOT",
 	    "org.scalatest" % "scalatest" % "1.3" % "test",
 	    "org.scala-tools.time" % "time_2.8.1" % "0.4",
 	    "javax.servlet" % "servlet-api" % "2.5" % "provided",
